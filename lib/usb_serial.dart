@@ -63,7 +63,7 @@ class _USBserialState extends State<USBserial> {
     await _port!.setDTR(true);
     await _port!.setRTS(true);
     await _port!.setPortParameters(
-        115200, UsbPort.DATABITS_8, UsbPort.STOPBITS_1, UsbPort.PARITY_NONE);
+        9600, UsbPort.DATABITS_8, UsbPort.STOPBITS_1, UsbPort.PARITY_NONE);
 
     _transaction = Transaction.stringTerminated(
         _port!.inputStream as Stream<Uint8List>, Uint8List.fromList([13, 10]));
@@ -94,8 +94,8 @@ class _USBserialState extends State<USBserial> {
     for (var device in devices) {
       _ports.add(ListTile(
           leading: Icon(Icons.usb),
-          title: Text(device.productName!),
-          subtitle: Text(device.manufacturerName!),
+          title: Text(device.productName ?? ""),
+          subtitle: Text(device.manufacturerName ?? ""),
           trailing: ElevatedButton(
             child: Text(_device == device ? "Disconnect" : "Connect"),
             onPressed: () {
@@ -135,41 +135,43 @@ class _USBserialState extends State<USBserial> {
         title: const Text('USB Serial'),
       ),
       drawer: CustomDrawer(),
-      body: Center(
-          child: Column(children: <Widget>[
-        Text(
-            _ports.length > 0
-                ? "Available Serial Ports"
-                : "No serial devices available",
-            style: Theme.of(context).textTheme.titleLarge),
-        ..._ports,
-        Text('Status: $_status\n'),
-        Text('info: ${_port.toString()}\n'),
-        ListTile(
-          title: TextField(
-            controller: _textController,
-            decoration: InputDecoration(
-              border: OutlineInputBorder(),
-              labelText: 'Text To Send',
+      body: SingleChildScrollView(
+        child: Center(
+            child: Column(children: <Widget>[
+          Text(
+              _ports.length > 0
+                  ? "Available Serial Ports"
+                  : "No serial devices available",
+              style: Theme.of(context).textTheme.titleLarge),
+          ..._ports,
+          Text('Status: $_status\n'),
+          Text('info: ${_port.toString()}\n'),
+          ListTile(
+            title: TextField(
+              controller: _textController,
+              decoration: InputDecoration(
+                border: OutlineInputBorder(),
+                labelText: 'Text To Send',
+              ),
+            ),
+            trailing: ElevatedButton(
+              child: Text("Send"),
+              onPressed: _port == null
+                  ? null
+                  : () async {
+                      if (_port == null) {
+                        return;
+                      }
+                      String data = _textController.text + "\r\n";
+                      await _port!.write(Uint8List.fromList(data.codeUnits));
+                      _textController.text = "";
+                    },
             ),
           ),
-          trailing: ElevatedButton(
-            child: Text("Send"),
-            onPressed: _port == null
-                ? null
-                : () async {
-                    if (_port == null) {
-                      return;
-                    }
-                    String data = _textController.text + "\r\n";
-                    await _port!.write(Uint8List.fromList(data.codeUnits));
-                    _textController.text = "";
-                  },
-          ),
-        ),
-        Text("Result Data", style: Theme.of(context).textTheme.titleLarge),
-        ..._serialData,
-      ])),
+          Text("Result Data", style: Theme.of(context).textTheme.titleLarge),
+          ..._serialData,
+        ])),
+      ),
     );
   }
 }

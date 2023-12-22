@@ -41,7 +41,7 @@ class _USBTestState extends State<USBTest> {
 
   @override
   void initState() {
-    // Permission.ser;
+    Permission.manageExternalStorage;
     super.initState();
     serialCommunication.startSerial().listen(_updateConnectionStatus);
     getSerialList();

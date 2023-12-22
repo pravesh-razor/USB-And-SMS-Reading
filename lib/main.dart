@@ -25,6 +25,55 @@ class _MyAppState extends State<MyApp> {
     super.initState();
   }
 
+  final TextEditingController _textEditingController = TextEditingController();
+
+  void showMyDialog() async {
+    var result = await Get.defaultDialog(
+      barrierDismissible: false,
+      title: 'Enter Sender Number',
+      content: AlertDialog(
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: _textEditingController,
+              decoration: const InputDecoration(labelText: 'Enter text'),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                ElevatedButton(
+                  onPressed: () async {
+                    // Access the entered text using _textEditingController.text
+                    Get.back(result: _textEditingController.text);
+                    await checkSMSs();
+                  },
+                  child: Text('Save'),
+                ),
+                ElevatedButton(
+                  onPressed: () async {
+                    // Clear the text field
+                    _textEditingController.clear();
+                    Get.back();
+                    await checkSMSs();
+                  },
+                  child: Text('Clear'),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (result != null && result is String) {
+      // Handle the result (text entered in the dialog)
+      print('Entered text: $result');
+      _textEditingController.text = result;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return GetMaterialApp(
@@ -36,6 +85,13 @@ class _MyAppState extends State<MyApp> {
       home: Scaffold(
         appBar: AppBar(
           title: const Text('SMS Inbox Example'),
+          actions: [
+            IconButton(
+                onPressed: () {
+                  showMyDialog();
+                },
+                icon: const Icon(Icons.phone_android_outlined))
+          ],
         ),
         drawer: CustomDrawer(),
         body: Container(
@@ -54,27 +110,31 @@ class _MyAppState extends State<MyApp> {
         ),
         floatingActionButton: FloatingActionButton(
           onPressed: () async {
-            var permission = await Permission.sms.status;
-            if (permission.isGranted) {
-              final messages = await _query.querySms(
-                kinds: [
-                  SmsQueryKind.inbox,
-                  SmsQueryKind.sent,
-                ],
-                // address: '+918652513863',
-                count: 10,
-              );
-              debugPrint('sms inbox messages: ${messages.length}');
-
-              setState(() => _messages = messages);
-            } else {
-              await Permission.sms.request();
-            }
+            await checkSMSs();
           },
           child: const Icon(Icons.refresh),
         ),
       ),
     );
+  }
+
+  Future<void> checkSMSs() async {
+    var permission = await Permission.sms.status;
+    if (permission.isGranted) {
+      final messages = await _query.querySms(
+        kinds: [
+          SmsQueryKind.inbox,
+          // SmsQueryKind.sent,
+        ],
+        address: _textEditingController.text,
+        // count: 10,
+      );
+      debugPrint('sms inbox messages: ${messages.length}');
+
+      setState(() => _messages = messages);
+    } else {
+      await Permission.sms.request();
+    }
   }
 }
 
